@@ -27,7 +27,7 @@ function App() {
     formData.append('description', description);
 
     try {
-      const response = await axios.post('http://127.0.0.1:8000/upload/', formData, {
+      const response = await axios.post('http://mr-morkow.ru:8888/document_api/upload/', formData, {
         responseType: 'blob', // Указываем, что ожидаем файл
         headers: {
           'Content-Type': 'multipart/form-data',
