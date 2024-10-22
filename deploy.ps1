@@ -14,6 +14,9 @@ if ($LASTEXITCODE -eq 0) {
     # Создаем директорию на сервере, если она не существует
     ssh "${serverUser}@${serverHost}" "sudo mkdir -p ${remotePath}"
 
+    # Очистка директории на сервере перед загрузкой
+    ssh "${serverUser}@${serverHost}" "sudo rm -rf ${remotePath}/*"
+
     # Отправка папки build на сервер с помощью scp
     scp -r "./build/*" "${serverUser}@${serverHost}:${remotePath}"
 
