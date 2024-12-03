@@ -6,6 +6,7 @@ function Scanner() {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const [qrCode, setQrCode] = useState(null);
+  const [qrCodeLines, setQrCodeLines] = useState([]);
 
   useEffect(() => {
     const startCamera = async () => {
@@ -28,14 +29,15 @@ function Scanner() {
         const canvas = canvasRef.current;
         const context = canvas.getContext('2d');
         context.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-        
+    
         const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
         const code = jsQR(imageData.data, canvas.width, canvas.height);
-
+    
         if (code) {
-          setQrCode(code.data); // Сохранить данные QR-кода
+          const qrData = code.data;
+          setQrCodeLines(qrData.split('\n')); // Сохраняем строки из QR-кода
         }
-
+    
         requestAnimationFrame(tick);
       }
     };
@@ -54,14 +56,23 @@ function Scanner() {
     };
   }, []);
 
+  
   return (
     <div>
       <h1>Scanner</h1>
       <video ref={videoRef} autoPlay style={{ width: '100%', height: 'auto' }} />
       <canvas ref={canvasRef} style={{ display: 'none' }} width={640} height={480} />
-      {qrCode && <p>QR Code Data: {qrCode}</p>}
+      {qrCodeLines.length > 0 && (
+        <div>
+          <h3>QR Code Data:</h3>
+          {qrCodeLines.map((line, index) => (
+            <p key={index}>{line}</p>
+          ))}
+        </div>
+      )}
     </div>
   );
+  
 }
 
 export default Scanner;

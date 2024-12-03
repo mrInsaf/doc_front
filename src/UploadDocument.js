@@ -176,36 +176,71 @@ function UploadDocument() {
     setFormattedDate(formattedDate);
   };
 
-  // const handleSubmit = async (event) => {
-  //   event.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
 
-  //   const formData = new FormData();
-  //   formData.append('file', file);
-  //   formData.append('title', title);
-  //   formData.append('description', description);
+      // personCode - всегда 1
+      const personCode = 1;
+  
+      // kksCode - берем из состояния (ранее установленного в fillFormFunction)
+      const kksCode = document.getElementById('kks-code').value;
+  
+      // workType - получаем из workType.json
+      const workTypeValue = workType;
+  
+      // docType - получаем из docType.json
+      const docTypeValue = docType;
+  
+      // versionPrefix и version - пока фиксированные значения
+      const versionPrefix = 1;
+      const version = 1;
+  
+      // datelnput - фиксированная дата
+      const datelnput = date;
+  
+      // document - берется из input файла
+      const documentFile = file; 
+  
+      if (!documentFile) {
+        console.error("Файл документа не найден!");
+        alert("Загрузите документ перед маркировкой!");
+        return;
+      }
+  
+      // Формируем данные
+      const formData = new FormData();
+      formData.append('personCode', personCode);
+      formData.append('kksCode', kksCode);
+      formData.append('workType', workTypeValue);
+      formData.append('docType', docTypeValue);
+      formData.append('versionPrefix', versionPrefix);
+      formData.append('version', version);
+      formData.append('datelnput', formattedDate);
+      formData.append('document', documentFile);
 
-  //   try {
-  //     const response = await axios.post('https://mr-morkow.ru:8888/document_api/upload/', formData, {
-  //       responseType: 'blob',
-  //       headers: {
-  //         'Content-Type': 'multipart/form-data',
-  //       },
-  //     });
+    try {
+      // const response = await axios.post('https://mr-morkow.ru:8888/document_api/upload/', formData, {
+      const response = await axios.post('http://127.0.0.1:8000/upload/', formData, {
+        responseType: 'blob',
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
 
-  //     const url = window.URL.createObjectURL(new Blob([response.data]));
-  //     const a = document.createElement('a');
-  //     a.href = url;
-  //     a.setAttribute('download', `updated_${file.name}`);
-  //     document.body.appendChild(a);
-  //     a.click();
-  //     document.body.removeChild(a);
-  //     window.URL.revokeObjectURL(url);
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const a = document.createElement('a');
+      a.href = url;
+      a.setAttribute('download', `updated_${file.name}`);
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
 
-  //     console.log('File uploaded successfully:', response.data);
-  //   } catch (error) {
-  //     console.error('Error uploading file:', error);
-  //   }
-  // };
+      console.log('File uploaded successfully:', response.data);
+    } catch (error) {
+      console.error('Error uploading file:', error);
+    }
+  };
 
   return (
     <div>
@@ -249,7 +284,7 @@ function UploadDocument() {
         <button
           className="add-code-button"
           id="add_code"
-          onClick={addCodeFunction}
+          onClick={handleSubmit}
         >
           <span>Маркировать документ</span>
         </button>
