@@ -1,79 +1,245 @@
 // src/UploadDocument.js
 import React, { useState } from 'react';
 import axios from 'axios';
+import $ from 'jquery'; // Если вы используете jQuery
 
 function UploadDocument() {
-  const [file, setFile] = useState(null);
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
 
-  const handleFileChange = (event) => {
-    setFile(event.target.files[0]);
-  };
+  const [kksCode, setKksCode] = useState('');
+  const [workType, setWorkType] = useState('');
+  const [docType, setDocType] = useState('');
 
-  const handleTitleChange = (event) => {
-    setTitle(event.target.value);
-  };
-
-  const handleDescriptionChange = (event) => {
-    setDescription(event.target.value);
-  };
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('title', title);
-    formData.append('description', description);
+  const parseKKS = (kksCode) => {
+    const kksPattern = /^([A-Z]{2})\.([A-Z])\.([A-Z\d]{4})\.([A-Z\d])\.([A-Z\d]{6})\.([A-Z\d]{6})\.([A-Z\d]{3})\.([A-Z\d]{2})\.([A-Z\d]{4})\.([A-Z])$/;
 
     try {
-      const response = await axios.post('https://mr-morkow.ru:8888/document_api/upload/', formData, {
-        responseType: 'blob',
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const a = document.createElement('a');
-      a.href = url;
-      a.setAttribute('download', `updated_${file.name}`);
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-
-      console.log('File uploaded successfully:', response.data);
-    } catch (error) {
-      console.error('Error uploading file:', error);
+        const match = kksCode.match(kksPattern);
+        if (!match) {
+          throw new Error('ККС-код не соответствует ожидаемому формату.');
+        }
+        return {
+          aсе: match[1],
+          stage: match[2],
+          developer: match[3],
+          blockNumber: match[4],
+          division: match[5],
+          subdivision: match[6],
+          specialty: match[7],
+          docType: match[8],
+          registrationNumber: match[9],
+          language: match[10],
+        };
+    }
+    catch(error) {
+      showAlert('errorDocTypeAlert');
     }
   };
 
+  const addCodeFunction = () => {
+    console.log('Функция маркировки документа.');
+  };
+
+  const updateCodeFunction = () => {
+    console.log('Функция обновления документа.');
+  };
+
+  const fillFormFunction = (event) => {
+    const input = event.target;
+    const kksCodeInput = document.getElementById('kks-code');
+    const workTypeInput = document.getElementById('work-type');
+    const docTypeInput = document.getElementById('doc-type')
+
+    if (input.files.length) {
+      const file = input.files[0];
+      const fileName = file.name;
+
+      if (fileName.endsWith('.docx')) {
+        try{
+          showAlert('fileSuccess');
+
+          kksCodeInput.value = fileName.slice(0, -5); //kks из названия файлы
+          const parsedKKS = parseKKS(fileName.slice(0, -5));
+          console.log("parsed kks: " + parsedKKS.registrationNumber)
+          setKksCode(parsedKKS);
+
+          $.getJSON("workType.json", function(workTypeJson) {
+            const workType = workTypeJson[parsedKKS.specialty];
+            workTypeInput.value = workType;
+          });
+
+          $.getJSON("docType.json", function(docTypeJson) {
+            const docType = docTypeJson[parsedKKS.docType];
+            docTypeInput.value = docType;
+          });
+        }
+        catch(error) {
+          showAlert('errorDocTypeAlert');
+        }
+
+
+      } else {
+        showAlert('errorDocTypeAlert');
+      }
+    }
+  };
+
+  const showAlert = (alertId) => {
+    const alertElement = document.getElementById(alertId);
+    console.log("alert eeee")
+    if (alertElement) {
+      alertElement.style.display = 'block';
+    }
+  };
+
+  const closeAlert = (alertId) => {
+    const alertElement = document.getElementById(alertId);
+    if (alertElement) {
+      alertElement.style.display = 'none';
+    }
+  };
+
+  // const handleSubmit = async (event) => {
+  //   event.preventDefault();
+
+  //   const formData = new FormData();
+  //   formData.append('file', file);
+  //   formData.append('title', title);
+  //   formData.append('description', description);
+
+  //   try {
+  //     const response = await axios.post('https://mr-morkow.ru:8888/document_api/upload/', formData, {
+  //       responseType: 'blob',
+  //       headers: {
+  //         'Content-Type': 'multipart/form-data',
+  //       },
+  //     });
+
+  //     const url = window.URL.createObjectURL(new Blob([response.data]));
+  //     const a = document.createElement('a');
+  //     a.href = url;
+  //     a.setAttribute('download', `updated_${file.name}`);
+  //     document.body.appendChild(a);
+  //     a.click();
+  //     document.body.removeChild(a);
+  //     window.URL.revokeObjectURL(url);
+
+  //     console.log('File uploaded successfully:', response.data);
+  //   } catch (error) {
+  //     console.error('Error uploading file:', error);
+  //   }
+  // };
+
   return (
     <div>
-      <h1>Upload Document</h1>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label>
-            Title:
-            <input type="text" value={title} onChange={handleTitleChange} required />
-          </label>
+      <link rel="stylesheet" href="./style.css" />
+      <div>
+        <link href="./index.css" rel="stylesheet" />
+        <div className="container">
+        <div className="myAlert" id="errorDocTypeAlert">
+          <h2>Ошибка!</h2>
+          <p>Формат загружаемого файла не соответствует требованиям</p>
+          <p>Загрузите файл в формате docx</p>
+          <button
+            className="close-button"
+            onClick={() => closeAlert('errorDocTypeAlert')}
+          >
+            ОК
+          </button>
         </div>
-        <div>
-          <label>
-            Description:
-            <textarea value={description} onChange={handleDescriptionChange} required />
-          </label>
+        <div className="myAlert" id="fileSuccess">
+          <p>Файл успешно загружен.</p>
+          <button
+            className="close-button"
+            onClick={() => closeAlert('fileSuccess')}
+          >
+            ОК
+          </button>
         </div>
-        <div>
-          <label>
-            Upload DOCX:
-            <input type="file" accept=".docx" onChange={handleFileChange} required />
-          </label>
+        <img
+          src="/public/external/background.png"
+          alt="background"
+          className="background"
+        />
+        <div className="header">
+          <span>Маркировка документов</span>
+          <img
+            src="/public/external/rosatom_logo.png"
+            alt="rosatom_logo"
+            className="rosatom-logo"
+          />
         </div>
-        <button type="submit">Submit</button>
-      </form>
+        <button
+          className="add-code-button"
+          id="add_code"
+          onClick={addCodeFunction}
+        >
+          <span>Маркировать документ</span>
+        </button>
+        <input
+          type="file"
+          id="addFile"
+          accept=".docx"
+          onChange={fillFormFunction}
+        />
+        <div className="add-file-dropbox" id="dropbox">
+          <div className="add-file-dropbox-dotline" />
+          <img
+            src="/public/external/docxicon.png"
+            alt="docxicon"
+            className="docxicon"
+          />
+          <span>Перетащите файл в формате docx</span>
+        </div>
+        <span className="fill-form">Заполните форму для генерации QR кода:</span>
+        <div className="input-form">
+          <div className="inputtext">
+            <span className="sender-input-text">Код отправителя</span>
+            <span className="kks-code-text">KKS-Код</span>
+            <span className="work-type-text">Вид работы</span>
+            <span className="doc-type-text">Вид документа</span>
+            <span className="doc-version-text">Версия документа</span>
+            <span className="date-inpit-text">Дата загрузки</span>
+            <div className="sender-input">
+              <input type="text" defaultValue={123456} readOnly />
+            </div>
+            <div className="kks-input">
+              <input
+                type="text"
+                id="kks-code"
+                placeholder="123456789"
+                value={kksCode.value} // привязка значения
+                onChange={(e) => setKksCode(e.target.value)} // обновление значения
+              />
+            </div>
+            <div className="work-type-input">
+              <input type="text" id="work-type" placeholder="123456" />
+            </div>
+            <div className="doc-type-input">
+              <input type="text" id="doc-type" placeholder="123456" />
+            </div>
+            <div className="doc-version-input">
+              <input type="text" placeholder="123456" />
+            </div>
+            <div className="date-input">
+              <input type="date" id="dateField" />
+            </div>
+          </div>
+        </div>
+        <img
+          src="/public/external/whitesqaure.png"
+          alt="whitesqaure"
+          className="whitesqaure"
+        />
+        <img src="/public/external/qrcode.png" alt="qrcode" className="qrcode" />
+        <button
+          className="update-code-button"
+          id="update_code"
+          onClick={updateCodeFunction}
+        >
+          <span>Обновить QR-код</span>
+        </button>
+      </div>
+      </div>
     </div>
   );
 }
