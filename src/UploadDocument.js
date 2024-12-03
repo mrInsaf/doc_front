@@ -8,6 +8,9 @@ function UploadDocument() {
   const [kksCode, setKksCode] = useState('');
   const [workType, setWorkType] = useState('');
   const [docType, setDocType] = useState('');
+  const [file, setFile] = useState(null);
+  const [date, setDate] = useState('');
+  const [formattedDate, setFormattedDate] = useState('');
 
   const parseKKS = (kksCode) => {
     const kksPattern = /^([A-Z]{2})\.([A-Z])\.([A-Z\d]{4})\.([A-Z\d])\.([A-Z\d]{6})\.([A-Z\d]{6})\.([A-Z\d]{3})\.([A-Z\d]{2})\.([A-Z\d]{4})\.([A-Z])$/;
@@ -35,9 +38,67 @@ function UploadDocument() {
     }
   };
 
-  const addCodeFunction = () => {
-    console.log('Функция маркировки документа.');
+  const addCodeFunction = async () => {
+    try {
+      // personCode - всегда 1
+      const personCode = 1;
+  
+      // kksCode - берем из состояния (ранее установленного в fillFormFunction)
+      const kksCode = document.getElementById('kks-code').value;
+  
+      // workType - получаем из workType.json
+      const workTypeValue = workType;
+  
+      // docType - получаем из docType.json
+      const docTypeValue = docType;
+  
+      // versionPrefix и version - пока фиксированные значения
+      const versionPrefix = 1;
+      const version = 1;
+  
+      // datelnput - фиксированная дата
+      const datelnput = date;
+  
+      // document - берется из input файла
+      const documentFile = file; 
+  
+      if (!documentFile) {
+        console.error("Файл документа не найден!");
+        alert("Загрузите документ перед маркировкой!");
+        return;
+      }
+  
+      // Формируем данные
+      const formData = new FormData();
+      formData.append('personCode', personCode);
+      formData.append('kksCode', kksCode);
+      formData.append('workType', workTypeValue);
+      formData.append('docType', docTypeValue);
+      formData.append('versionPrefix', versionPrefix);
+      formData.append('version', version);
+      formData.append('datelnput', formattedDate);
+      formData.append('document', documentFile);
+
+      console.log("formdata: ")
+      formData.forEach((value, key) => {
+        console.log(key + ": " + value);
+      });
+  
+      // Отправка данных (здесь можно указать ваш URL)
+      const response = await axios.post('https://example.com/api/mark-document', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+  
+      console.log('Документ успешно маркирован:', response.data);
+      alert('Документ успешно маркирован!');
+    } catch (error) {
+      console.error('Ошибка при маркировке документа:', error);
+      alert('Произошла ошибка при маркировке документа.');
+    }
   };
+  
 
   const updateCodeFunction = () => {
     console.log('Функция обновления документа.');
@@ -56,6 +117,7 @@ function UploadDocument() {
       if (fileName.endsWith('.docx')) {
         try{
           showAlert('fileSuccess');
+          setFile(file);
 
           kksCodeInput.value = fileName.slice(0, -5); //kks из названия файлы
           const parsedKKS = parseKKS(fileName.slice(0, -5));
@@ -64,13 +126,17 @@ function UploadDocument() {
 
           $.getJSON("workType.json", function(workTypeJson) {
             const workType = workTypeJson[parsedKKS.specialty];
+            setWorkType(workType);
             workTypeInput.value = workType;
           });
 
           $.getJSON("docType.json", function(docTypeJson) {
             const docType = docTypeJson[parsedKKS.docType];
+            setDocType(docType);
             docTypeInput.value = docType;
           });
+
+          
         }
         catch(error) {
           showAlert('errorDocTypeAlert');
@@ -96,6 +162,18 @@ function UploadDocument() {
     if (alertElement) {
       alertElement.style.display = 'none';
     }
+  };
+  
+  const formatDate = (date) => {
+    const [year, month, day] = date.split('-'); // Разбиваем строку даты на компоненты
+    return `${day}-${month}-${year}`; // Форматируем в dd-mm-yyyy
+  };
+
+  const handleDateChange = (event) => {
+    setDate(event.target.value);
+    const formattedDate = formatDate(event.target.value);
+    console.log(formattedDate);
+    setFormattedDate(formattedDate);
   };
 
   // const handleSubmit = async (event) => {
@@ -221,7 +299,12 @@ function UploadDocument() {
               <input type="text" placeholder="123456" />
             </div>
             <div className="date-input">
-              <input type="date" id="dateField" />
+              <input
+                type="date"
+                id="dateField"
+                value={date} // Привязываем состояние к значению поля
+                onChange={handleDateChange} // Обработчик изменения
+              />
             </div>
           </div>
         </div>
