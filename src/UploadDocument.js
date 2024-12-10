@@ -1,5 +1,5 @@
 // src/UploadDocument.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import $ from 'jquery'; // Если вы используете jQuery
 
@@ -11,6 +11,36 @@ function UploadDocument() {
   const [file, setFile] = useState(null);
   const [date, setDate] = useState('');
   const [formattedDate, setFormattedDate] = useState('');
+  const [responseData, setResponseData] = useState(null);
+
+  useEffect(() => {
+    const formData = new FormData();
+    formData.append('login', 'zxc');
+    formData.append('password', 'zxc');
+
+    const fetchData = async () => {
+      try {
+        const response = await axios.post(
+          'http://localhost:8080/QRCodeFactory/login/login',
+          formData,
+          {
+            responseType: 'blob', // Указываем, что ответ в формате Blob
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          }
+        );
+
+        // Логируем или сохраняем данные
+        console.log('Response:', response);
+        setResponseData(response.data); // Сохраняем данные ответа
+      } catch (error) {
+        console.error('Ошибка:', error);
+      }
+    };
+
+    fetchData(); // Вызов функции
+  }, []);
 
   const parseKKS = (kksCode) => {
     const kksPattern = /^([A-Z]{2})\.([A-Z])\.([A-Z\d]{4})\.([A-Z\d])\.([A-Z\d]{6})\.([A-Z\d]{6})\.([A-Z\d]{3})\.([A-Z\d]{2})\.([A-Z\d]{4})\.([A-Z])$/;
@@ -220,7 +250,8 @@ function UploadDocument() {
 
     try {
       // const response = await axios.post('https://mr-morkow.ru:8888/document_api/upload/', formData, {
-      const response = await axios.post('http://127.0.0.1:8000/upload/', formData, {
+      // const response = await axios.post('http://127.0.0.1:8000/upload/', formData, {
+      const response = await axios.post('http://localhost:8080/QRCodeFactory/main/saveDocument', formData, {
         responseType: 'blob',
         headers: {
           'Content-Type': 'multipart/form-data',
