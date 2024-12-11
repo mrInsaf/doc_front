@@ -15,8 +15,8 @@ function UploadDocument() {
 
   useEffect(() => {
     const formData = new FormData();
-    formData.append('login', 'zxc');
-    formData.append('password', 'zxc');
+    formData.append('login', '123');
+    formData.append('password', '123');
 
     const fetchData = async () => {
       try {
@@ -28,11 +28,13 @@ function UploadDocument() {
             headers: {
               'Content-Type': 'multipart/form-data',
             },
+            withCredentials: true,
           }
         );
 
-        // Логируем или сохраняем данные
-        console.log('Response:', response);
+        const responseText = await response.data.text();
+        console.log('Response Text:', responseText);
+        console.log("Залогинился");
         setResponseData(response.data); // Сохраняем данные ответа
       } catch (error) {
         console.error('Ошибка:', error);
@@ -155,16 +157,18 @@ function UploadDocument() {
           setKksCode(parsedKKS);
 
           $.getJSON("workType.json", function(workTypeJson) {
-            const workType = workTypeJson[parsedKKS.specialty];
-            setWorkType(workType);
-            workTypeInput.value = workType;
-          });
+            const workTypeCode = parsedKKS.docType;  // Сохраняем сам код типа работы
+            setWorkType(workTypeCode);  // Устанавливаем код типа работы в состояние
+            workTypeInput.value = workTypeCode;  // Заполняем поле ввода кодом типа работы
+        });
+        
 
           $.getJSON("docType.json", function(docTypeJson) {
-            const docType = docTypeJson[parsedKKS.docType];
-            setDocType(docType);
-            docTypeInput.value = docType;
-          });
+            const docTypeCode = parsedKKS.specialty;  // Сохраняем сам код документа
+            setDocType(docTypeCode);  // Устанавливаем код в состояние
+            docTypeInput.value = docTypeCode;  // Заполняем поле ввода кодом документа
+        });
+        
 
           
         }
@@ -226,7 +230,7 @@ function UploadDocument() {
       const version = 1;
   
       // datelnput - фиксированная дата
-      const datelnput = date;
+      const dateInput = date;
   
       // document - берется из input файла
       const documentFile = file; 
@@ -245,7 +249,7 @@ function UploadDocument() {
       formData.append('docType', docTypeValue);
       formData.append('versionPrefix', versionPrefix);
       formData.append('version', version);
-      formData.append('datelnput', formattedDate);
+      formData.append('dateInput', formattedDate);
       formData.append('document', documentFile);
 
     try {
@@ -254,9 +258,14 @@ function UploadDocument() {
       const response = await axios.post('http://localhost:8080/QRCodeFactory/main/saveDocument', formData, {
         responseType: 'blob',
         headers: {
-          'Content-Type': 'multipart/form-data',
+          // 'Content-Type': 'multipart/form-data',
         },
+        withCredentials: true,
       });
+      const responseText = await response.data.text();
+      console.log('Response Text:', responseText);
+
+      console.log("Отправил пост запрос нах")
 
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const a = document.createElement('a');
@@ -269,9 +278,43 @@ function UploadDocument() {
 
       console.log('File uploaded successfully:', response.data);
     } catch (error) {
-      console.error('Error uploading file:', error);
+      if (error.response) {
+        // Проверяем, если тело ответа — Blob
+        const responseData = error.response.data;
+    
+        if (responseData instanceof Blob && responseData.type === 'text/html') {
+          const text = await responseData.text(); // Конвертируем Blob в текст
+          console.error('Error Response (Text):', text);
+    
+          // Проверяем текст ответа
+          if (text.includes('Документ уже есть в систсеме')) {
+            console.log("Сейчас покажу алерт");
+            showAlert('documentExistsAlert'); // Показываем алерт
+          }
+          else {
+            console.log("Сейчас не покажу алерт");
+            console.log('Искомый текст:', 'Документ уже есть в систсеме');
+            console.log('Полученный текст:', text);
+          }
+        } else {
+          console.error('Error Response (JSON):', responseData);
+    
+          // Если ответ в JSON и содержит сообщение об ошибке
+          if (responseData.message && responseData.message.includes('Документ уже есть в системе')) {
+            showAlert('document-exists-alert'); // Показываем алерт
+          }
+        }
+    
+        console.error('Status Code:', error.response.status);
+        console.error('Headers:', error.response.headers);
+      } else if (error.request) {
+        console.error('No Response:', error.request);
+      } else {
+        console.error('Error Message:', error.message);
+      }
+      console.error('Full Error Object:', error);
     }
-  };
+  }    
 
   return (
     <div>
@@ -290,6 +333,19 @@ function UploadDocument() {
             ОК
           </button>
         </div>
+
+        <div className="myAlert" id="documentExistsAlert">
+          <h2>Ошибка!</h2>
+          <p>Документ уже есть в системе</p>
+          <button
+            className="close-button"
+            onClick={() => closeAlert('documentExistsAlert')}
+          >
+            ОК
+          </button>
+        </div>
+
+        
         <div className="myAlert" id="fileSuccess">
           <p>Файл успешно загружен.</p>
           <button
