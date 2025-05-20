@@ -1,32 +1,34 @@
 // src/UploadDocument.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import $ from 'jquery'; // Если вы используете jQuery
 
 function UploadDocument() {
 
+  const dropAreaRef = useRef(null);
   const [kksCode, setKksCode] = useState('');
   const [workType, setWorkType] = useState('');
   const [docType, setDocType] = useState('');
   const [file, setFile] = useState(null);
   const [date, setDate] = useState('');
   const [formattedDate, setFormattedDate] = useState('');
+  const [version, setVersion] = useState('');
   const [responseData, setResponseData] = useState(null);
 
   useEffect(() => {
     const formData = new FormData();
-    formData.append('login', '123');
-    formData.append('password', '123');
+    formData.append('login', 'zxc');
+    formData.append('password', 'zxc');
 
     const fetchData = async () => {
       try {
         const response = await axios.post(
-          'http://localhost:8080/QRCodeFactory/login/login',
+          'https://mr-morkow.ru:8888/document_api/QRCodeFactory/login/login',
           formData,
           {
             responseType: 'blob', // Указываем, что ответ в формате Blob
             headers: {
-              'Content-Type': 'multipart/form-data',
+              'Content-Type': 'application/x-www-form-urlencoded',
             },
             withCredentials: true,
           }
@@ -74,32 +76,32 @@ function UploadDocument() {
     try {
       // personCode - всегда 1
       const personCode = 1;
-  
+
       // kksCode - берем из состояния (ранее установленного в fillFormFunction)
       const kksCode = document.getElementById('kks-code').value;
-  
+
       // workType - получаем из workType.json
       const workTypeValue = workType;
-  
+
       // docType - получаем из docType.json
       const docTypeValue = docType;
-  
+
       // versionPrefix и version - пока фиксированные значения
       const versionPrefix = 1;
       const version = 1;
-  
+
       // datelnput - фиксированная дата
       const datelnput = date;
-  
+
       // document - берется из input файла
-      const documentFile = file; 
-  
+      const documentFile = file;
+
       if (!documentFile) {
         console.error("Файл документа не найден!");
         alert("Загрузите документ перед маркировкой!");
         return;
       }
-  
+
       // Формируем данные
       const formData = new FormData();
       formData.append('personCode', personCode);
@@ -108,21 +110,21 @@ function UploadDocument() {
       formData.append('docType', docTypeValue);
       formData.append('versionPrefix', versionPrefix);
       formData.append('version', version);
-      formData.append('datelnput', formattedDate);
+      formData.append('dateInput', formattedDate);
       formData.append('document', documentFile);
 
       console.log("formdata: ")
       formData.forEach((value, key) => {
         console.log(key + ": " + value);
       });
-  
+
       // Отправка данных (здесь можно указать ваш URL)
       const response = await axios.post('https://example.com/api/mark-document', formData, {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          'Content-Type': 'application/x-www-form-urlencoded',
         },
       });
-  
+
       console.log('Документ успешно маркирован:', response.data);
       alert('Документ успешно маркирован!');
     } catch (error) {
@@ -130,20 +132,19 @@ function UploadDocument() {
       alert('Произошла ошибка при маркировке документа.');
     }
   };
-  
+
 
   const updateCodeFunction = () => {
     console.log('Функция обновления документа.');
   };
 
-  const fillFormFunction = (event) => {
-    const input = event.target;
+  const fillFormFunction = (files) => {
     const kksCodeInput = document.getElementById('kks-code');
     const workTypeInput = document.getElementById('work-type');
     const docTypeInput = document.getElementById('doc-type')
 
-    if (input.files.length) {
-      const file = input.files[0];
+    if (files.length) {
+      const file = files[0];
       const fileName = file.name;
 
       if (fileName.endsWith('.docx')) {
@@ -161,16 +162,15 @@ function UploadDocument() {
             setWorkType(workTypeCode);  // Устанавливаем код типа работы в состояние
             workTypeInput.value = workTypeCode;  // Заполняем поле ввода кодом типа работы
         });
-        
+
 
           $.getJSON("docType.json", function(docTypeJson) {
             const docTypeCode = parsedKKS.specialty;  // Сохраняем сам код документа
             setDocType(docTypeCode);  // Устанавливаем код в состояние
             docTypeInput.value = docTypeCode;  // Заполняем поле ввода кодом документа
         });
-        
 
-          
+
         }
         catch(error) {
           showAlert('errorDocTypeAlert');
@@ -182,6 +182,41 @@ function UploadDocument() {
       }
     }
   };
+
+  useEffect(() => {
+    const dropArea = dropAreaRef.current;
+
+    const handleDragOver = (event) => {
+      event.preventDefault();
+      dropArea.classList.add('highlight');
+    };
+
+    const handleDragLeave = () => {
+      dropArea.classList.remove('highlight');
+    };
+
+    const handleDrop = (event) => {
+      event.preventDefault();
+      dropArea.classList.remove('highlight');
+      const files = event.dataTransfer.files;
+      fillFormFunction(files); // Call fillFormFunction with the dropped files
+    };
+
+    if (dropArea) {
+      dropArea.addEventListener('dragover', handleDragOver);
+      dropArea.addEventListener('dragleave', handleDragLeave);
+      dropArea.addEventListener('drop', handleDrop);
+    }
+
+    return () => {
+      if (dropArea) {
+        dropArea.removeEventListener('dragover', handleDragOver);
+        dropArea.removeEventListener('dragleave', handleDragLeave);
+        dropArea.removeEventListener('drop', handleDrop);
+      }
+    };
+  }, [fillFormFunction]); // Add fillFormFunction to the dependency array
+
 
   const showAlert = (alertId) => {
     const alertElement = document.getElementById(alertId);
@@ -197,10 +232,12 @@ function UploadDocument() {
       alertElement.style.display = 'none';
     }
   };
-  
+
   const formatDate = (date) => {
     const [year, month, day] = date.split('-'); // Разбиваем строку даты на компоненты
-    return `${day}-${month}-${year}`; // Форматируем в dd-mm-yyyy
+    const monthFormatted = String(month).padStart(2, '0'); // Добавляем ведущий ноль для месяца
+    const dayFormatted = String(day).padStart(2, '0');     // Добавляем ведущий ноль для дня
+    return `${dayFormatted}-${monthFormatted}-${year}`; // Форматируем в dd-MM-yyyy
   };
 
   const handleDateChange = (event) => {
@@ -215,32 +252,31 @@ function UploadDocument() {
 
       // personCode - всегда 1
       const personCode = 1;
-  
+
       // kksCode - берем из состояния (ранее установленного в fillFormFunction)
       const kksCode = document.getElementById('kks-code').value;
-  
+
       // workType - получаем из workType.json
       const workTypeValue = workType;
-  
+
       // docType - получаем из docType.json
       const docTypeValue = docType;
-  
+
       // versionPrefix и version - пока фиксированные значения
-      const versionPrefix = 1;
-      const version = 1;
-  
+      const versionPrefix = 'A';
+
       // datelnput - фиксированная дата
       const dateInput = date;
-  
+
       // document - берется из input файла
-      const documentFile = file; 
-  
+      const documentFile = file;
+
       if (!documentFile) {
         console.error("Файл документа не найден!");
         alert("Загрузите документ перед маркировкой!");
         return;
       }
-  
+
       // Формируем данные
       const formData = new FormData();
       formData.append('personCode', personCode);
@@ -255,10 +291,10 @@ function UploadDocument() {
     try {
       // const response = await axios.post('https://mr-morkow.ru:8888/document_api/upload/', formData, {
       // const response = await axios.post('http://127.0.0.1:8000/upload/', formData, {
-      const response = await axios.post('http://localhost:8080/QRCodeFactory/main/saveDocument', formData, {
+      const response = await axios.post('https://mr-morkow.ru:8888/document_api/QRCodeFactory/main/saveDocument', formData, {
         responseType: 'blob',
         headers: {
-          // 'Content-Type': 'multipart/form-data',
+          'Content-Type': 'multipart/form-data',
         },
         withCredentials: true,
       });
@@ -281,11 +317,11 @@ function UploadDocument() {
       if (error.response) {
         // Проверяем, если тело ответа — Blob
         const responseData = error.response.data;
-    
+
         if (responseData instanceof Blob && responseData.type === 'text/html') {
           const text = await responseData.text(); // Конвертируем Blob в текст
           console.error('Error Response (Text):', text);
-    
+
           // Проверяем текст ответа
           if (text.includes('Документ уже есть в систсеме')) {
             console.log("Сейчас покажу алерт");
@@ -298,13 +334,13 @@ function UploadDocument() {
           }
         } else {
           console.error('Error Response (JSON):', responseData);
-    
+
           // Если ответ в JSON и содержит сообщение об ошибке
           if (responseData.message && responseData.message.includes('Документ уже есть в системе')) {
             showAlert('document-exists-alert'); // Показываем алерт
           }
         }
-    
+
         console.error('Status Code:', error.response.status);
         console.error('Headers:', error.response.headers);
       } else if (error.request) {
@@ -314,7 +350,7 @@ function UploadDocument() {
       }
       console.error('Full Error Object:', error);
     }
-  }    
+  }
 
   return (
     <div>
@@ -345,7 +381,7 @@ function UploadDocument() {
           </button>
         </div>
 
-        
+
         <div className="myAlert" id="fileSuccess">
           <p>Файл успешно загружен.</p>
           <button
@@ -379,9 +415,9 @@ function UploadDocument() {
           type="file"
           id="addFile"
           accept=".docx"
-          onChange={fillFormFunction}
+          onChange={(event) => fillFormFunction(event.target.files)}
         />
-        <div className="add-file-dropbox" id="dropbox">
+        <div className="add-file-dropbox" id="dropbox" ref={dropAreaRef}>
           <div className="add-file-dropbox-dotline" />
           <img
             src="/public/external/docxicon.png"
@@ -418,7 +454,13 @@ function UploadDocument() {
               <input type="text" id="doc-type" placeholder="123456" />
             </div>
             <div className="doc-version-input">
-              <input type="text" placeholder="123456" />
+              <input
+                type="text"
+                id="version"
+                placeholder="Введите версию"
+                value={version}
+                onChange={(e) => setVersion(e.target.value)}
+              />
             </div>
             <div className="date-input">
               <input
