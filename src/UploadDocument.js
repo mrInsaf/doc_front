@@ -158,16 +158,19 @@ function UploadDocument() {
           setKksCode(parsedKKS);
 
           $.getJSON("workType.json", function(workTypeJson) {
-            const workTypeCode = parsedKKS.docType;  // Сохраняем сам код типа работы
-            setWorkType(workTypeCode);  // Устанавливаем код типа работы в состояние
-            workTypeInput.value = workTypeCode;  // Заполняем поле ввода кодом типа работы
+            const workTypeCode = parsedKKS.specialty;  // Сохраняем сам код типа работы
+            console.log(workTypeCode);
+            const workTypeName = workTypeJson[workTypeCode] || "Неизвестный код"; // Получить название
+            setWorkType(workTypeName);
+            workTypeInput.value = workTypeName; // Обновить поле ввода
         });
 
 
           $.getJSON("docType.json", function(docTypeJson) {
-            const docTypeCode = parsedKKS.specialty;  // Сохраняем сам код документа
-            setDocType(docTypeCode);  // Устанавливаем код в состояние
-            docTypeInput.value = docTypeCode;  // Заполняем поле ввода кодом документа
+            const docTypeCode = parsedKKS.docType;  // Сохраняем сам код документа
+            const docTypeName = docTypeJson[docTypeCode] || "Неизвестный код"; // Получить название
+            setDocType(docTypeName);
+            docTypeInput.value = docTypeName;
         });
 
 
