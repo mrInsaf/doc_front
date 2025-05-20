@@ -9,11 +9,16 @@ function UploadDocument() {
   const [kksCode, setKksCode] = useState('');
   const [workType, setWorkType] = useState('');
   const [docType, setDocType] = useState('');
+
+  const [workTypeName, setWorkTypeName] = useState('');
+  const [docTypeName, setDocTypeName] = useState('');
+
   const [file, setFile] = useState(null);
   const [date, setDate] = useState('');
   const [formattedDate, setFormattedDate] = useState('');
   const [version, setVersion] = useState('');
   const [responseData, setResponseData] = useState(null);
+  const [documentId, setDocumentId] = useState('');
 
   useEffect(() => {
     const formData = new FormData();
@@ -72,7 +77,7 @@ function UploadDocument() {
     }
   };
 
-  const addCodeFunction = async () => {
+const updateCodeFunction = async () => {
     try {
       // personCode - всегда 1
       const personCode = 1;
@@ -87,55 +92,54 @@ function UploadDocument() {
       const docTypeValue = docType;
 
       // versionPrefix и version - пока фиксированные значения
-      const versionPrefix = 1;
-      const version = 1;
+      const versionPrefix = 'A';
 
       // datelnput - фиксированная дата
-      const datelnput = date;
+      const dateInput = date;
 
-      // document - берется из input файла
-      const documentFile = file;
-
-      if (!documentFile) {
-        console.error("Файл документа не найден!");
-        alert("Загрузите документ перед маркировкой!");
-        return;
-      }
+      console.log("personCode:", personCode);
+      console.log("versionPrefix:", versionPrefix);
+      console.log("kksCode:", kksCode);
+      console.log("workType:", workType);
+      console.log("docType:", docType);
+      console.log("version:", version);
+      console.log("dateInput (ISO):", dateInput);
 
       // Формируем данные
-      const formData = new FormData();
-      formData.append('personCode', personCode);
-      formData.append('kksCode', kksCode);
-      formData.append('workType', workTypeValue);
-      formData.append('docType', docTypeValue);
-      formData.append('versionPrefix', versionPrefix);
-      formData.append('version', version);
-      formData.append('dateInput', formattedDate);
-      formData.append('document', documentFile);
+      const requestData = new FormData();
+      requestData.append('personCode', personCode);
+      requestData.append('kksCode', kksCode);
+      requestData.append('workType', workTypeValue);
+      requestData.append('docType', docTypeValue);
+      requestData.append('versionPrefix', versionPrefix);
+      requestData.append('version', version);
+      requestData.append('dateInput', formattedDate);
 
-      console.log("formdata: ")
-      formData.forEach((value, key) => {
-        console.log(key + ": " + value);
-      });
+      const response = await axios.post(
+        "https://mr-morkow.ru:8888/document_api/QRCodeFactory/main/showQRCode ",
+        requestData,
+        {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          responseType: "blob",
+          withCredentials: true,
+        }
+      );
 
-      // Отправка данных (здесь можно указать ваш URL)
-      const response = await axios.post('https://example.com/api/mark-document', formData, {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-      });
-
-      console.log('Документ успешно маркирован:', response.data);
-      alert('Документ успешно маркирован!');
+      if (response.status === 200) {
+        console.log(response);
+        const imageUrl = URL.createObjectURL(new Blob([response.data]));
+        const qrCodeImage = document.getElementById("qrcode");
+        qrCodeImage.src = imageUrl;
+      } else {
+        console.error("Ошибка генерации QR-кода:", response.statusText);
+        showAlert("qrCodeErrorAlert");
+      }
     } catch (error) {
-      console.error('Ошибка при маркировке документа:', error);
-      alert('Произошла ошибка при маркировке документа.');
+      console.error("Произошла ошибка:", error);
+      showAlert("qrCodeErrorAlert");
     }
-  };
-
-
-  const updateCodeFunction = () => {
-    console.log('Функция обновления документа.');
   };
 
   const fillFormFunction = (files) => {
@@ -155,21 +159,23 @@ function UploadDocument() {
           kksCodeInput.value = fileName.slice(0, -5); //kks из названия файлы
           const parsedKKS = parseKKS(fileName.slice(0, -5));
           console.log("parsed kks: " + parsedKKS.registrationNumber)
-          setKksCode(parsedKKS);
+          setKksCode(parsedKKS); 
 
           $.getJSON("workType.json", function(workTypeJson) {
             const workTypeCode = parsedKKS.specialty;  // Сохраняем сам код типа работы
+            setWorkType(workTypeCode);
             console.log(workTypeCode);
             const workTypeName = workTypeJson[workTypeCode] || "Неизвестный код"; // Получить название
-            setWorkType(workTypeName);
+            setWorkTypeName(workTypeName);
             workTypeInput.value = workTypeName; // Обновить поле ввода
         });
 
 
           $.getJSON("docType.json", function(docTypeJson) {
             const docTypeCode = parsedKKS.docType;  // Сохраняем сам код документа
+            setDocType(docTypeCode);
             const docTypeName = docTypeJson[docTypeCode] || "Неизвестный код"; // Получить название
-            setDocType(docTypeName);
+            setDocTypeName(docTypeName);
             docTypeInput.value = docTypeName;
         });
 
@@ -303,8 +309,6 @@ function UploadDocument() {
       });
       const responseText = await response.data.text();
       console.log('Response Text:', responseText);
-
-      console.log("Отправил пост запрос нах")
 
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const a = document.createElement('a');
@@ -480,7 +484,7 @@ function UploadDocument() {
           alt="whitesqaure"
           className="whitesqaure"
         />
-        <img src="/public/external/qrcode.png" alt="qrcode" className="qrcode" />
+        <img src="/public/external/qrcode.png" id="qrcode" alt="qrcode" className="qrcode" />
         <button
           className="update-code-button"
           id="update_code"
