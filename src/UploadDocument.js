@@ -1,6 +1,8 @@
 // src/UploadDocument.js
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import apiClient from './utils/api';
+import config from './config/config';
 import $ from 'jquery'; // Если вы используете jQuery
 
 function UploadDocument() {
@@ -27,8 +29,8 @@ function UploadDocument() {
 
     const fetchData = async () => {
       try {
-        const response = await axios.post(
-          'https://mr-morkow.ru:8888/document_api/QRCodeFactory/login/login',
+        const response = await apiClient.post(
+          config.AUTH_ENDPOINT,
           formData,
           {
             responseType: 'blob', // Указываем, что ответ в формате Blob
@@ -115,8 +117,8 @@ const updateCodeFunction = async () => {
       requestData.append('version', version);
       requestData.append('dateInput', formattedDate);
 
-      const response = await axios.post(
-        "https://mr-morkow.ru:8888/document_api/QRCodeFactory/main/showQRCode ",
+      const response = await apiClient.post(
+        config.QR_CODE_ENDPOINT,
         requestData,
         {
           headers: {
@@ -298,9 +300,7 @@ const updateCodeFunction = async () => {
       formData.append('document', documentFile);
 
     try {
-      // const response = await axios.post('https://mr-morkow.ru:8888/document_api/upload/', formData, {
-      // const response = await axios.post('http://127.0.0.1:8000/upload/', formData, {
-      const response = await axios.post('https://mr-morkow.ru:8888/document_api/QRCodeFactory/main/saveDocument', formData, {
+      const response = await apiClient.post(config.DOCUMENT_UPLOAD_ENDPOINT, formData, {
         responseType: 'blob',
         headers: {
           'Content-Type': 'multipart/form-data',
