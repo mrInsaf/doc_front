@@ -1,8 +1,8 @@
 # Установите путь к удаленной папке на сервере
 $remotePath = "/var/www/documentFabric/front"
 # Данные для подключения к серверу
-$serverUser = "stepan"
-$serverHost = "45.151.31.119"
+$serverUser = "user"
+$serverHost = "server.host"
 
 # Выполнить команду для сборки проекта
 npm run build
